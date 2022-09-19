@@ -10,6 +10,7 @@ import (
 	"github.com/andviro/grayproxy/pkg/dummy"
 	"github.com/andviro/grayproxy/pkg/http"
 	"github.com/andviro/grayproxy/pkg/loki"
+	"github.com/andviro/grayproxy/pkg/newrelic"
 	"github.com/andviro/grayproxy/pkg/tcp"
 	"github.com/andviro/grayproxy/pkg/udp"
 	"github.com/andviro/grayproxy/pkg/ws"
@@ -61,6 +62,7 @@ func (app *app) configure() error {
 	fs.BoolVar(&app.verbose, "v", false, "echo received logs on console")
 	fs.IntVar(&app.sendTimeout, "sendTimeout", 1000, "maximum TCP or HTTP output timeout (ms)")
 	fs.StringVar(&app.dataDir, "dataDir", "", "buffer directory (defaults to no buffering)")
+	fs.BoolVar(&app.sendAllEndpoints, "a", false, "send to all endpoints, even if some of them are down")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return errors.Wrap(err, "parsing command-line")
 	}
@@ -100,6 +102,9 @@ func (app *app) configure() error {
 			app.outs = append(app.outs, wss)
 		case strings.HasPrefix(v, "udp://"):
 			app.outs = append(app.outs, &udp.Sender{Address: strings.TrimPrefix(v, "udp://"), SendTimeout: app.sendTimeout})
+		case strings.HasPrefix(v, "newrelic:"):
+			rds := newrelic.CreateSenderFromConfig(v, app.sendTimeout)
+			app.outs = append(app.outs, &rds)
 		default:
 			app.outs = append(app.outs, &tcp.Sender{Address: strings.TrimPrefix(v, "tcp://"), SendTimeout: app.sendTimeout})
 		}

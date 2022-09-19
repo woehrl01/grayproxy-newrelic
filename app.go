@@ -27,6 +27,7 @@ type app struct {
 	verbose     bool
 	sendTimeout int
 	dataDir     string
+	sendAllEndpoints bool
 
 	ins        []listener
 	outs       []sender
@@ -62,7 +63,9 @@ func (app *app) dequeue() {
 				app.sendErrors[i] = nil
 			}
 			sent = true
-			break
+			if(!app.sendAllEndpoints){
+				break
+			}
 		}
 		if !sent {
 			if app.dataDir == "" {
