@@ -52,6 +52,24 @@ func getLogType(logtype int) string{
 }
 }
 
+func convertToNewRelicFormat(data []byte) (output []byte, err error) {
+	var result map[string]interface{}
+	if err = json.Unmarshal(data, &result); err != nil {
+		return nil, errors.Wrap(err, "unmarshal")
+	}
+
+	result["logtype"] = getLogType(int(result["level"].(float64)))
+	result["message"] = result["short_message"].(string) + result["full_message"].(string)
+	result["timestamp"] = int(result["timestamp"].(float64))
+	delete (result, "short_message")
+	delete (result, "full_message")
+	delete (result, "level")
+	delete (result, "version")
+	delete (result, "host")
+
+	return json.Marshal(result)
+}
+
 func endpointUrl(region string) string {
 	switch region {
 	case "eu":
@@ -62,21 +80,9 @@ func endpointUrl(region string) string {
 }
 
 func (s *Sender) Send(data []byte) (err error) {
-	var result map[string]interface{}
-	if err = json.Unmarshal(data, &result); err != nil {
-		return errors.Wrap(err, "unmarshal")
-	}
-
-	result["logtype"] = getLogType(result["level"].(int))
-	result["message"] = result["short_message"].(string) + result["full_message"].(string)
-	result["timestamp"] = int(result["timestamp"].(float64))
-	delete (result, "short_message")
-	delete (result, "full_message")
-	delete (result, "level")
-
-	output, err := json.Marshal(result)
+	output, err := convertToNewRelicFormat(data)
 	if err != nil {
-		return errors.Wrap(err, "marshal")
+		return errors.Wrap(err, "convertToNewRelicFormat")
 	}
 
 	req, err := http.NewRequest("POST", endpointUrl(s.Region), bytes.NewReader(output))
