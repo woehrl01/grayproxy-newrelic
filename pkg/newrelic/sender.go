@@ -59,7 +59,7 @@ func convertToNewRelicFormat(data []byte) (output []byte, err error) {
 	}
 
 	result["logtype"] = getLogType(int(result["level"].(float64)))
-	result["message"] = result["short_message"].(string) + result["full_message"].(string)
+	result["message"] = result["short_message"].(string) + " " + result["full_message"].(string)
 	result["timestamp"] = int(result["timestamp"].(float64))
 	delete (result, "short_message")
 	delete (result, "full_message")
